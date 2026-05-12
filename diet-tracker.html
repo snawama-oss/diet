@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Diet Tracker — 7月末まで</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #13131a;
+  --surface2: #1c1c26;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0f0f5;
+  --muted: #7a7a90;
+  --accent: #c8f050;
+  --accent2: #50e8c8;
+  --accent3: #f07050;
+  --morning: #f5c842;
+  --lunch: #50c8f0;
+  --dinner: #c850f0;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Noto Sans JP', sans-serif;
+  --r: 12px;
+  --r-sm: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 56px;
+}
+.nav-logo { font-family: var(--font-display); font-weight: 800; font-size: 16px; letter-spacing: 0.04em; }
+.nav-logo span { color: var(--accent); }
+.nav-tabs { display: flex; gap: 2px; }
+.nav-tab {
+  background: none; border: none; color: var(--muted);
+  font-family: var(--font-body); font-size: 13px;
+  padding: 6px 14px; border-radius: var(--r-sm); cursor: pointer;
+  transition: all 0.2s; white-space: nowrap;
+}
+.nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-tab.active { color: var(--accent); background: rgba(200,240,80,0.1); }
+
+/* SECTIONS */
+.section { display: none; padding: 24px; max-width: 760px; margin: 0 auto; }
+.section.active { display: block; animation: fadeUp 0.35s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* ==================== PLAN SECTION ==================== */
+.hero-plan {
+  position: relative; overflow: hidden;
+  background: var(--surface); border-radius: 20px;
+  padding: 40px 36px; margin-bottom: 20px;
+  border: 1px solid var(--border2);
+}
+.hero-plan::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 80% 20%, rgba(200,240,80,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse at 20% 80%, rgba(80,232,200,0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+.hero-eyebrow {
+  font-family: var(--font-display); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent);
+  margin-bottom: 12px;
+}
+.hero-title {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(28px, 5vw, 42px); line-height: 1.1;
+  margin-bottom: 10px;
+}
+.hero-title em { color: var(--accent); font-style: normal; }
+.hero-sub { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 28px; }
+
+.countdown-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.cd-box {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 10px; text-align: center;
+}
+.cd-num { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: var(--accent); line-height: 1; }
+.cd-label { font-size: 10px; color: var(--muted); margin-top: 4px; letter-spacing: 0.08em; }
+
+/* phases */
+.phases { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.phase {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px 20px;
+  display: grid; grid-template-columns: 48px 1fr auto;
+  gap: 16px; align-items: start;
+  transition: border-color 0.2s, transform 0.2s;
+  cursor: default;
+}
+.phase:hover { border-color: var(--border2); transform: translateX(4px); }
+.phase-num {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 18px;
+  flex-shrink: 0;
+}
+.p1 .phase-num { background: rgba(200,240,80,0.15); color: var(--accent); }
+.p2 .phase-num { background: rgba(80,232,200,0.15); color: var(--accent2); }
+.p3 .phase-num { background: rgba(240,112,80,0.15); color: var(--accent3); }
+.phase-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.phase-date { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+.phase-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.phase-badge {
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  white-space: nowrap; padding-top: 2px;
+}
+.p1 .phase-badge { color: var(--accent); }
+.p2 .phase-badge { color: var(--accent2); }
+.p3 .phase-badge { color: var(--accent3); }
+
+/* weekly plan */
+.week-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px; margin-bottom: 20px;
+}
+.week-card-title { font-family: var(--font-display); font-weight: 700; font-size: 14px; margin-bottom: 14px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
+.week-row { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+.day-cell {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 10px 4px;
+  text-align: center; transition: all 0.2s;
+}
+.day-cell:hover { border-color: var(--border2); }
+.day-cell.today { border-color: var(--accent); background: rgba(200,240,80,0.06); }
+.day-cell.done { border-color: rgba(80,232,200,0.4); background: rgba(80,232,200,0.05); }
+.day-name { font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+.day-task { font-size: 10px; font-weight: 500; line-height: 1.3; }
+.day-cell.today .day-task { color: var(--accent); }
+.day-cell.done .day-task { color: var(--accent2); }
+
+/* calorie target card */
+.kcal-targets { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.kt-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px; text-align: center;
+}
+.kt-icon { font-size: 20px; margin-bottom: 8px; }
+.kt-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.kt-val { font-family: var(--font-display); font-weight: 800; font-size: 22px; }
+.kt-morning { color: var(--morning); }
+.kt-lunch { color: var(--lunch); }
+.kt-dinner { color: var(--dinner); }
+
+/* ==================== FOOD SECTION ==================== */
+.day-total-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px 20px; margin-bottom: 16px;
+}
+.dtb-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.dtb-label { font-size: 12px; color: var(--muted); }
+.dtb-val { font-family: var(--font-display); font-weight: 800; font-size: 22px; }
+.dtb-val span { font-size: 13px; font-weight: 400; color: var(--muted); }
+.track { background: rgba(255,255,255,0.06); border-radius: 4px; height: 6px; overflow: hidden; }
+.track-fill { height: 6px; border-radius: 4px; transition: width 0.4s ease; }
+.dtb-breakdown { display: flex; gap: 16px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+.dtb-breakdown b { font-weight: 500; color: var(--text); }
+
+.meal-block {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); margin-bottom: 12px; overflow: hidden;
+}
+.meal-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; cursor: pointer;
+  transition: background 0.15s;
+}
+.meal-head:hover { background: rgba(255,255,255,0.03); }
+.meal-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.meal-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; flex: 1; }
+.meal-kcal-tag {
+  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  font-weight: 500;
+}
+.m-morning .meal-dot { background: var(--morning); }
+.m-morning .meal-kcal-tag { background: rgba(245,200,66,0.12); color: var(--morning); }
+.m-lunch .meal-dot { background: var(--lunch); }
+.m-lunch .meal-kcal-tag { background: rgba(80,200,240,0.12); color: var(--lunch); }
+.m-dinner .meal-dot { background: var(--dinner); }
+.m-dinner .meal-kcal-tag { background: rgba(200,80,240,0.12); color: var(--dinner); }
+
+.meal-body { padding: 0 18px 14px; border-top: 1px solid var(--border); }
+.quick-row { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 12px; margin-bottom: 10px; }
+.qtag {
+  font-size: 11px; padding: 4px 10px; border-radius: 20px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; transition: all 0.15s;
+}
+.qtag:hover { border-color: var(--border2); color: var(--text); }
+.add-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.add-row input {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--text); font-family: var(--font-body);
+  font-size: 13px; padding: 8px 12px; outline: none;
+  transition: border-color 0.15s;
+}
+.add-row input:focus { border-color: var(--border2); }
+.add-row input:first-child { flex: 1; }
+.add-row input:last-of-type { width: 72px; }
+.btn-add {
+  background: var(--accent); color: #0a0a0f; border: none;
+  border-radius: var(--r-sm); font-family: var(--font-display); font-weight: 700;
+  font-size: 12px; padding: 8px 14px; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-add:hover { opacity: 0.85; }
+.log-list { }
+.log-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.log-item:last-child { border-bottom: none; }
+.log-name { color: var(--text); }
+.log-right { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.del-btn {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 14px; padding: 0 2px; line-height: 1;
+  transition: color 0.15s;
+}
+.del-btn:hover { color: var(--accent3); }
+.meal-prog-bg { background: rgba(255,255,255,0.05); border-radius: 2px; height: 3px; margin-top: 10px; overflow: hidden; }
+.meal-prog-fill { height: 3px; border-radius: 2px; transition: width 0.4s; }
+
+/* ==================== EXERCISE SECTION ==================== */
+.ex-week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin-bottom: 20px; }
+.ex-day {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 10px 4px; text-align: center;
+}
+.ex-day.done { border-color: rgba(200,240,80,0.4); background: rgba(200,240,80,0.05); }
+.ex-day .d { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.ex-day .c { font-size: 16px; margin-bottom: 2px; }
+.ex-day.done .c { filter: none; }
+.ex-day .l { font-size: 9px; color: var(--muted); }
+.ex-day.done .l { color: var(--accent); }
+
+/* ==================== WEIGHT SECTION ==================== */
+.chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+
+/* ==================== SHARED ==================== */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px;
+}
+.card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; font-weight: 500; }
+.input-row { display: flex; gap: 6px; }
+.input-row input, .input-row select {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--text); font-family: var(--font-body);
+  font-size: 13px; padding: 8px 12px; outline: none; flex: 1;
+  transition: border-color 0.15s;
+}
+.input-row input:focus, .input-row select:focus { border-color: var(--border2); }
+.input-row select { cursor: pointer; }
+.input-row input[style*="width"] { flex: none; }
+.btn-primary {
+  background: var(--accent); color: #0a0a0f; border: none;
+  border-radius: var(--r-sm); font-family: var(--font-display); font-weight: 700;
+  font-size: 12px; padding: 8px 16px; cursor: pointer; white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+.progress-bar { background: rgba(255,255,255,0.06); border-radius: 4px; height: 8px; overflow: hidden; margin: 8px 0; }
+.progress-fill { height: 8px; border-radius: 4px; background: var(--accent); transition: width 0.4s; }
+.badge-green { background: rgba(200,240,80,0.12); color: var(--accent); font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+.badge-red { background: rgba(240,112,80,0.12); color: var(--accent3); font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">DIET<span>.</span>TRACK</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('plan',this)">📋 プラン</button>
+    <button class="nav-tab" onclick="switchTab('food',this)">🍱 食事</button>
+    <button class="nav-tab" onclick="switchTab('exercise',this)">🏃 運動</button>
+    <button class="nav-tab" onclick="switchTab('weight',this)">📈 体重</button>
+  </div>
+</nav>
+
+<!-- ===== PLAN ===== -->
+<div class="section active" id="tab-plan">
+
+  <div class="hero-plan">
+    <div class="hero-eyebrow">あなたの挑戦 — 2026</div>
+    <div class="hero-title">7月末まで、<em>本気</em>で<br>変わる80日間。</div>
+    <div class="hero-sub">食事 × 運動のバランスで、-5〜10kgを目指す。<br>1日1日の積み重ねが、未来の自分をつくる。</div>
+    <div class="countdown-grid">
+      <div class="cd-box"><div class="cd-num" id="cdDays">80</div><div class="cd-label">DAYS</div></div>
+      <div class="cd-box"><div class="cd-num" id="cdWeeks">11</div><div class="cd-label">WEEKS</div></div>
+      <div class="cd-box"><div class="cd-num">10</div><div class="cd-label">KG TARGET</div></div>
+      <div class="cd-box"><div class="cd-num">1600</div><div class="cd-label">KCAL/DAY</div></div>
+    </div>
+  </div>
+
+  <div class="phases">
+    <div class="phase p1">
+      <div class="phase-num">1</div>
+      <div>
+        <div class="phase-title">習慣化フェーズ</div>
+        <div class="phase-date">5月12日 → 6月7日（27日間）</div>
+        <div class="phase-desc">食事記録を毎日つける習慣を作る。週3回の有酸素運動でリズムを整える。無理せず体を慣らす期間。</div>
+      </div>
+      <div class="phase-badge">-2kg</div>
+    </div>
+    <div class="phase p2">
+      <div class="phase-num">2</div>
+      <div>
+        <div class="phase-title">加速フェーズ</div>
+        <div class="phase-date">6月8日 → 7月5日（28日間）</div>
+        <div class="phase-desc">筋トレ追加で週5回運動。タンパク質を意識した食事でカロリー管理を徹底。最も成果が出る期間。</div>
+      </div>
+      <div class="phase-badge">-5kg</div>
+    </div>
+    <div class="phase p3">
+      <div class="phase-num">3</div>
+      <div>
+        <div class="phase-title">仕上げフェーズ</div>
+        <div class="phase-date">7月6日 → 7月31日（26日間）</div>
+        <div class="phase-desc">食事の質を高めて最終調整。体型維持しながら追加減量。自信を持って夏を迎える。</div>
+      </div>
+      <div class="phase-badge">-3kg</div>
+    </div>
+  </div>
+
+  <div class="week-card">
+    <div class="week-card-title">今週のスケジュール</div>
+    <div class="week-row">
+      <div class="day-cell done"><div class="day-name">月</div><div class="day-task">筋トレ</div></div>
+      <div class="day-cell today"><div class="day-name">火</div><div class="day-task">有酸素</div></div>
+      <div class="day-cell"><div class="day-name">水</div><div class="day-task">筋トレ</div></div>
+      <div class="day-cell"><div class="day-name">木</div><div class="day-task">休息</div></div>
+      <div class="day-cell"><div class="day-name">金</div><div class="day-task">有酸素</div></div>
+      <div class="day-cell"><div class="day-name">土</div><div class="day-task">アクティブ</div></div>
+      <div class="day-cell"><div class="day-name">日</div><div class="day-task">完全休養</div></div>
+    </div>
+  </div>
+
+  <div class="kcal-targets">
+    <div class="kt-box">
+      <div class="kt-icon">🌅</div>
+      <div class="kt-label">朝食</div>
+      <div class="kt-val kt-morning">400<small style="font-size:13px;font-weight:400"> kcal</small></div>
+    </div>
+    <div class="kt-box">
+      <div class="kt-icon">☀️</div>
+      <div class="kt-label">昼食</div>
+      <div class="kt-val kt-lunch">600<small style="font-size:13px;font-weight:400"> kcal</small></div>
+    </div>
+    <div class="kt-box">
+      <div class="kt-icon">🌙</div>
+      <div class="kt-label">夕食</div>
+      <div class="kt-val kt-dinner">500<small style="font-size:13px;font-weight:400"> kcal</small></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== FOOD ===== -->
+<div class="section" id="tab-food">
+
+  <div class="day-total-bar">
+    <div class="dtb-top">
+      <div class="dtb-label">本日の合計摂取カロリー</div>
+      <div class="dtb-val"><span id="totalKcal">0</span> <span>/ 1600 kcal</span></div>
+    </div>
+    <div class="track"><div class="track-fill" id="totalBar" style="width:0%;background:var(--accent)"></div></div>
+    <div class="dtb-breakdown">
+      <span>🌅 朝 <b id="s朝">0</b></span>
+      <span>☀️ 昼 <b id="s昼">0</b></span>
+      <span>🌙 晩 <b id="s晩">0</b></span>
+      <span>残り <b id="sRem">1600</b> kcal</span>
+    </div>
+  </div>
+
+  <!-- 朝食 -->
+  <div class="meal-block m-morning">
+    <div class="meal-head" onclick="toggleMeal('朝')">
+      <div class="meal-dot"></div>
+      <div class="meal-name">🌅 朝食</div>
+      <div class="meal-kcal-tag" id="tag朝">0 kcal</div>
+      <div style="color:var(--muted);font-size:14px;margin-left:4px" id="chev朝">▾</div>
+    </div>
+    <div class="meal-body" id="body朝">
+      <div class="quick-row">
+        <span class="qtag" onclick="qa('朝','ヨーグルト',60)">ヨーグルト 60</span>
+        <span class="qtag" onclick="qa('朝','トースト',160)">トースト 160</span>
+        <span class="qtag" onclick="qa('朝','バナナ',86)">バナナ 86</span>
+        <span class="qtag" onclick="qa('朝','ゆで卵',78)">ゆで卵 78</span>
+        <span class="qtag" onclick="qa('朝','味噌汁',30)">味噌汁 30</span>
+        <span class="qtag" onclick="qa('朝','白米150g',252)">白米 252</span>
+      </div>
+      <div class="add-row">
+        <input type="text" id="n朝" placeholder="食品名" />
+        <input type="number" id="k朝" placeholder="kcal" style="width:75px" />
+        <button class="btn-add" onclick="addFood('朝')">追加</button>
+      </div>
+      <div class="log-list" id="log朝"></div>
+      <div class="meal-prog-bg"><div class="meal-prog-fill" id="prog朝" style="width:0%;background:var(--morning)"></div></div>
+    </div>
+  </div>
+
+  <!-- 昼食 -->
+  <div class="meal-block m-lunch">
+    <div class="meal-head" onclick="toggleMeal('昼')">
+      <div class="meal-dot"></div>
+      <div class="meal-name">☀️ 昼食</div>
+      <div class="meal-kcal-tag" id="tag昼">0 kcal</div>
+      <div style="color:var(--muted);font-size:14px;margin-left:4px" id="chev昼">▾</div>
+    </div>
+    <div class="meal-body" id="body昼">
+      <div class="quick-row">
+        <span class="qtag" onclick="qa('昼','白米150g',252)">白米 252</span>
+        <span class="qtag" onclick="qa('昼','鶏むね150g',165)">鶏むね 165</span>
+        <span class="qtag" onclick="qa('昼','サラダ',40)">サラダ 40</span>
+        <span class="qtag" onclick="qa('昼','豆腐150g',85)">豆腐 85</span>
+        <span class="qtag" onclick="qa('昼','うどん',260)">うどん 260</span>
+        <span class="qtag" onclick="qa('昼','おにぎり',170)">おにぎり 170</span>
+      </div>
+      <div class="add-row">
+        <input type="text" id="n昼" placeholder="食品名" />
+        <input type="number" id="k昼" placeholder="kcal" style="width:75px" />
+        <button class="btn-add" onclick="addFood('昼')">追加</button>
+      </div>
+      <div class="log-list" id="log昼"></div>
+      <div class="meal-prog-bg"><div class="meal-prog-fill" id="prog昼" style="width:0%;background:var(--lunch)"></div></div>
+    </div>
+  </div>
+
+  <!-- 夕食 -->
+  <div class="meal-block m-dinner">
+    <div class="meal-head" onclick="toggleMeal('晩')">
+      <div class="meal-dot"></div>
+      <div class="meal-name">🌙 夕食</div>
+      <div class="meal-kcal-tag" id="tag晩">0 kcal</div>
+      <div style="color:var(--muted);font-size:14px;margin-left:4px" id="chev晩">▾</div>
+    </div>
+    <div class="meal-body" id="body晩">
+      <div class="quick-row">
+        <span class="qtag" onclick="qa('晩','白米100g',168)">白米 168</span>
+        <span class="qtag" onclick="qa('晩','魚1切れ',130)">魚 130</span>
+        <span class="qtag" onclick="qa('晩','野菜炒め',120)">野菜炒め 120</span>
+        <span class="qtag" onclick="qa('晩','鍋料理',200)">鍋料理 200</span>
+        <span class="qtag" onclick="qa('晩','豆腐150g',85)">豆腐 85</span>
+        <span class="qtag" onclick="qa('晩','味噌汁',30)">味噌汁 30</span>
+      </div>
+      <div class="add-row">
+        <input type="text" id="n晩" placeholder="食品名" />
+        <input type="number" id="k晩" placeholder="kcal" style="width:75px" />
+        <button class="btn-add" onclick="addFood('晩')">追加</button>
+      </div>
+      <div class="log-list" id="log晩"></div>
+      <div class="meal-prog-bg"><div class="meal-prog-fill" id="prog晩" style="width:0%;background:var(--dinner)"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== EXERCISE ===== -->
+<div class="section" id="tab-exercise">
+
+  <div class="card">
+    <div class="card-label">今週の運動</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <span style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800"><span id="exCount">0</span> <span style="font-size:13px;font-weight:400;color:var(--muted)">/ 5 回</span></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="exBar" style="width:0%"></div></div>
+    <div class="ex-week-grid" style="margin-top:14px">
+      <div class="ex-day" id="exd0"><div class="d">月</div><div class="c">💪</div><div class="l" id="exl0">-</div></div>
+      <div class="ex-day" id="exd1"><div class="d">火</div><div class="c">🏃</div><div class="l" id="exl1">-</div></div>
+      <div class="ex-day" id="exd2"><div class="d">水</div><div class="c">💪</div><div class="l" id="exl2">-</div></div>
+      <div class="ex-day" id="exd3"><div class="d">木</div><div class="c">😴</div><div class="l" id="exl3">休息</div></div>
+      <div class="ex-day" id="exd4"><div class="d">金</div><div class="c">🏃</div><div class="l" id="exl4">-</div></div>
+      <div class="ex-day" id="exd5"><div class="d">土</div><div class="c">🚴</div><div class="l" id="exl5">-</div></div>
+      <div class="ex-day" id="exd6"><div class="d">日</div><div class="c">🛌</div><div class="l" id="exl6">完全休養</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">運動を記録する</div>
+    <div class="input-row" style="flex-wrap:wrap;gap:6px">
+      <select id="exType">
+        <option>ウォーキング</option><option>ジョギング</option><option>筋トレ</option>
+        <option>水泳</option><option>サイクリング</option><option>ヨガ</option><option>HIIT</option>
+      </select>
+      <input type="number" id="exMin" placeholder="分" style="width:75px;flex:none" />
+      <button class="btn-primary" onclick="addExercise()">記録する</button>
+    </div>
+    <div class="log-list" id="exLog" style="margin-top:10px"></div>
+  </div>
+
+</div>
+
+<!-- ===== WEIGHT ===== -->
+<div class="section" id="tab-weight">
+
+  <div class="card">
+    <div class="card-label">体重を記録する</div>
+    <div class="input-row">
+      <input type="number" id="wInput" placeholder="体重 (kg)" step="0.1" />
+      <button class="btn-primary" onclick="addWeight()">記録する</button>
+    </div>
+    <div class="log-list" id="wLog" style="margin-top:10px"></div>
+  </div>
+
+  <div class="chart-wrap">
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px">体重推移グラフ</div>
+    <div style="display:flex;gap:16px;font-size:11px;color:var(--muted);margin-bottom:12px">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:18px;height:2px;background:#50c8f0;display:inline-block;border-radius:2px"></span>実測</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:18px;height:2px;background:rgba(200,240,80,0.5);display:inline-block;border-radius:2px;border-top:2px dashed rgba(200,240,80,0.5)"></span>目標ライン</span>
+    </div>
+    <div style="position:relative;height:220px"><canvas id="wChart" role="img" aria-label="体重推移グラフ"></canvas></div>
+  </div>
+
+</div>
+
+<script>
+const meals = {朝:[],昼:[],晩:[]};
+const TARGETS = {朝:400,昼:600,晩:500};
+const open = {朝:true,昼:true,晩:true};
+let exercises = [], weights = [], wChart = null;
+
+function switchTab(t, el) {
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  el.classList.add('active');
+  if (t==='weight') setTimeout(renderWChart,50);
+}
+
+function toggleMeal(m) {
+  open[m] = !open[m];
+  document.getElementById('body'+m).style.display = open[m] ? 'block' : 'none';
+  document.getElementById('chev'+m).textContent = open[m] ? '▾' : '▸';
+}
+
+function addFood(m) {
+  const n = document.getElementById('n'+m).value.trim();
+  const k = parseInt(document.getElementById('k'+m).value);
+  if (!n||!k) return;
+  meals[m].push({n,k});
+  document.getElementById('n'+m).value='';
+  document.getElementById('k'+m).value='';
+  renderMeal(m); updateTotal();
+}
+
+function qa(m,n,k) { meals[m].push({n,k}); renderMeal(m); updateTotal(); }
+function rmFood(m,i) { meals[m].splice(i,1); renderMeal(m); updateTotal(); }
+
+function renderMeal(m) {
+  const t = meals[m].reduce((s,f)=>s+f.k,0);
+  const pct = Math.min(100,Math.round(t/TARGETS[m]*100));
+  document.getElementById('tag'+m).textContent = t+' kcal';
+  document.getElementById('prog'+m).style.width = pct+'%';
+  document.getElementById('log'+m).innerHTML = meals[m].map((f,i)=>
+    `<div class="log-item"><span class="log-name">${f.n}</span><div class="log-right"><span>${f.k} kcal</span><button class="del-btn" onclick="rmFood('${m}',${i})">✕</button></div></div>`
+  ).join('');
+}
+
+function updateTotal() {
+  const s = {朝:0,昼:0,晩:0};
+  ['朝','昼','晩'].forEach(m=>s[m]=meals[m].reduce((a,f)=>a+f.k,0));
+  const t = s['朝']+s['昼']+s['晩'];
+  const pct = Math.min(100,Math.round(t/1600*100));
+  const col = pct>100?'var(--accent3)':pct>85?'#f0b850':'var(--accent)';
+  document.getElementById('totalKcal').textContent=t;
+  document.getElementById('totalBar').style.width=pct+'%';
+  document.getElementById('totalBar').style.background=col;
+  document.getElementById('s朝').textContent=s['朝'];
+  document.getElementById('s昼').textContent=s['昼'];
+  document.getElementById('s晩').textContent=s['晩'];
+  document.getElementById('sRem').textContent=Math.max(0,1600-t);
+}
+
+function addExercise() {
+  const type = document.getElementById('exType').value;
+  const min = parseInt(document.getElementById('exMin').value);
+  if (!min) return;
+  exercises.push({type,min});
+  document.getElementById('exMin').value='';
+  renderExercise();
+}
+
+function rmEx(i) { exercises.splice(i,1); renderExercise(); }
+
+function renderExercise() {
+  const c = exercises.length;
+  document.getElementById('exCount').textContent=c;
+  document.getElementById('exBar').style.width=Math.min(100,Math.round(c/5*100))+'%';
+  document.getElementById('exLog').innerHTML = exercises.map((e,i)=>
+    `<div class="log-item"><span class="log-name">${e.type}</span><div class="log-right"><span>${e.min}分</span><button class="del-btn" onclick="rmEx(${i})">✕</button></div></div>`
+  ).join('');
+}
+
+function addWeight() {
+  const w = parseFloat(document.getElementById('wInput').value);
+  if (!w) return;
+  const d = new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
+  weights.push({d,w});
+  document.getElementById('wInput').value='';
+  renderWLog(); renderWChart();
+}
+
+function rmW(i) { weights.splice(i,1); renderWLog(); renderWChart(); }
+
+function renderWLog() {
+  document.getElementById('wLog').innerHTML = weights.slice(-6).reverse().map((wt,ri)=>{
+    const idx=weights.length-1-ri;
+    const prev=weights[idx-1];
+    const diff=prev?(wt.w-prev.w).toFixed(1):null;
+    const b=diff?(parseFloat(diff)<0?`<span class="badge-green">${diff}kg</span>`:`<span class="badge-red">+${diff}kg</span>`):'';
+    return `<div class="log-item"><span class="log-name">${wt.d}</span><div class="log-right">${b}<span>${wt.w.toFixed(1)} kg</span><button class="del-btn" onclick="rmW(${idx})">✕</button></div></div>`;
+  }).join('');
+}
+
+function renderWChart() {
+  const ctx=document.getElementById('wChart').getContext('2d');
+  const sw=weights.length?weights[0].w:65;
+  const labels=weights.length?weights.map(w=>w.d):['5/12','6月初','6月末','7月末'];
+  const data=weights.length?weights.map(w=>w.w):[];
+  const goal=labels.map((_,i)=>parseFloat((sw-7*(i/Math.max(labels.length-1,1))).toFixed(1)));
+  if(wChart)wChart.destroy();
+  wChart=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'実測',data,borderColor:'#50c8f0',backgroundColor:'rgba(80,200,240,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#50c8f0',tension:0.35,fill:true},
+      {label:'目標',data:goal,borderColor:'rgba(200,240,80,0.6)',borderDash:[6,4],borderWidth:1.5,pointRadius:0,tension:0.35,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(19,19,26,0.95)',titleColor:'#f0f0f5',bodyColor:'#7a7a90',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7a7a90',font:{size:11}}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7a7a90',font:{size:11}}}
+      }
+    }
+  });
+}
+
+function updateCountdown() {
+  const now=new Date();
+  const end=new Date('2026-07-31');
+  const days=Math.ceil((end-now)/86400000);
+  document.getElementById('cdDays').textContent=days;
+  document.getElementById('cdWeeks').textContent=Math.ceil(days/7);
+}
+
+updateCountdown();
+renderWChart();
+</script>
+</body>
+</html>
